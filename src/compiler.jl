@@ -1,5 +1,7 @@
 module Compiler
 
+import ..Enzyme: Const, Active, Duplicated, DuplicatedNoNeed
+
 using GPUCompiler
 using LLVM
 using LLVM.Interop
@@ -9,8 +11,20 @@ import GPUCompiler: CompilerJob, FunctionSpec, codegen
 import Enzyme_jll
 import Libdl
 
+const jit = Ref{OrcJIT}()
+const tm  = Ref{TargetMachine}()
+
 function __init__()
     LLVM.clopts("-enzyme_preopt=0")
+
+    triple = LLVM.triple()
+    target = LLVM.Target(triple=triple)
+    tm[] = TargetMachine(target, triple, "", "", LLVM.API.LLVMCodeGenLevelDefault)
+    LLVM.asm_verbosity!(tm[], true)
+    jit[] = OrcJIT(tm[]) # takes ownership of tm
+    atexit() do
+        dispose(jit[])
+    end
 end
 
 # Define EnzymeTarget
@@ -59,7 +73,8 @@ GPUCompiler.runtime_slug(job::CompilerJob{EnzymeTarget}) = "enzyme"
 
 include("compiler/optimize.jl")
 include("compiler/cassette.jl")
-include("compiler/validation.jl")
+include("compiler/thunk.jl")
+# include("compiler/validation.jl")
 
 
 
