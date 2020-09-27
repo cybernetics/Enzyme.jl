@@ -3,9 +3,6 @@ module Enzyme
 export autodiff
 export Const, Active, Duplicated
 
-using LLVM
-using LLVM.Interop
-using Libdl
 using Cassette
 
 abstract type Annotation{T} end 
@@ -29,18 +26,6 @@ Base.eltype(::Type{<:Annotation{T}}) where T = T
 
 include("utils.jl")
 include("compiler.jl")
-
-# function enzyme_code_llvm(io::IO, @nospecialize(func), @nospecialize(types); 
-#                    optimize::Bool=true, run_enzyme::Bool=true, raw::Bool=false,
-#                    debuginfo::Symbol=:default, dump_module::Bool=false)
-#     thunk = LLVMThunk(func, types, optimize=optimize, run_enzyme=run_enzyme)
-# 
-#     str = ccall(:jl_dump_function_ir, Ref{String},
-#                 (Ptr{Cvoid}, Bool, Bool, Ptr{UInt8}),
-#                 LLVM.ref(thunk.entry), !raw, dump_module, debuginfo)
-#     print(io, str)
-# end
-# enzyme_code_llvm(@nospecialize(func), @nospecialize(types); kwargs...) = enzyme_code_llvm(stdout, func, types; kwargs...)
 
 annotate() = ()
 annotate(arg::Annotation, args...) = (arg, annotate(args...)...)

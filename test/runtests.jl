@@ -13,8 +13,12 @@ end
 
 @testset "Internal tests" begin
     f(x) = 1.0 + x
-    thunk = Enzyme.Thunk(f, (Active{Float64},))
-    thunk = Enzyme.Thunk(f, (Const{Float64},))
+    thunk_a = Enzyme.Compiler.thunk(f, Tuple{Active{Float64}})
+    thunk_b = Enzyme.Compiler.thunk(f, Tuple{Const{Float64}})
+    @test thunk_a.ptr !== thunk_b.ptr
+
+    @test thunk_a(2.0) == 1.0
+    @test thunk_b(2.0) == 2.0
 end
 
 @testset "Simple tests" begin
