@@ -1,7 +1,7 @@
 function enzyme_code_llvm(io::IO, @nospecialize(func), @nospecialize(types); 
                    optimize::Bool=true, run_enzyme::Bool=true, raw::Bool=false,
                    debuginfo::Symbol=:default, dump_module::Bool=false)
-    primal, adjoint, rt = fspec(f, tt)
+    primal, adjoint, rt = fspec(func, types)
 
     target = Compiler.EnzymeTarget()
     params = Compiler.EnzymeCompilerParams()
@@ -20,8 +20,8 @@ function enzyme_code_llvm(io::IO, @nospecialize(func), @nospecialize(types);
     end
 
     str = ccall(:jl_dump_function_ir, Ref{String},
-                (Ptr{Cvoid}, Bool, Bool, Ptr{UInt8}),
-                LLVM.ref(thunk.entry), !raw, dump_module, debuginfo)
+                (LLVM.API.LLVMValueRef, Bool, Bool, Ptr{UInt8}),
+                llvmf, !raw, dump_module, debuginfo)
     print(io, str)
 end
 enzyme_code_llvm(@nospecialize(func), @nospecialize(types); kwargs...) = enzyme_code_llvm(stdout, func, types; kwargs...)

@@ -75,7 +75,8 @@ Create the `FunctionSpec` pair, and lookup the primal return type.
     adjoint = FunctionSpec(f, tt, #=kernel=# false, #=name=# nothing)
 
     # primal function. Inferred here to get return type
-    overdub_tt = Tuple{typeof(Compiler.CTX), F, map(eltype, tt.parameters)...}
+    _tt = (tt.parameters...,)
+    overdub_tt = Tuple{typeof(Compiler.CTX), F, map(eltype, _tt)...}
     primal = FunctionSpec(Cassette.overdub, overdub_tt, #=kernel=# false, #=name=# nothing)
 
     # can't return array since that's complicated.
