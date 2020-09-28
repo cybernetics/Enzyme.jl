@@ -113,7 +113,7 @@ function wrapper!(mod, primalf, adjoint, rt)
 
     # Create the FunctionType and funtion declaration for the intrinsic
     pt       = LLVM.PointerType(LLVM.Int8Type(ctx))
-    ftd      = LLVM.FunctionType(rettype, LLVMType[pt])
+    ftd      = LLVM.FunctionType(rettype, LLVMType[pt], vararg = true)
     autodiff = LLVM.Function(mod, string("__enzyme_autodiff.", rt), ftd)
 
     params = LLVM.Value[]
@@ -146,6 +146,7 @@ function wrapper!(mod, primalf, adjoint, rt)
         tc = bitcast!(builder, primalf,  pt)
         pushfirst!(params, tc)
 
+        ccall(:jl_breakpoint, Cvoid, (Any,), params)
         val = call!(builder, autodiff, params)
 
         ret!(builder, val)
