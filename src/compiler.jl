@@ -27,12 +27,6 @@ function tm_for_jit()
     end
     target = LLVM.Target(triple=triple)
 
-    if Int === Int64
-        codemodel = LLVM.API.LLVMCodeModelLarge
-    else
-        codemodel = LLVM.API.LLVMCodeModelJITDefault
-    end
-
     if opts.opt_level < 2
         optlevel = LLVM.API.LLVMCodeGenLevelNone
     elseif opts.opt_level == 2
@@ -44,7 +38,8 @@ function tm_for_jit()
     tm = TargetMachine(target, triple, cpu, features,
                        optlevel,
                        LLVM.API.LLVMRelocStatic, # Generate simpler code for JIT
-                       codemodel)
+                       LLVM.API.LLVMCodeModelJITDefault, # Required to init TM as JIT
+                       )
     LLVM.asm_verbosity!(tm, true)
 
     return tm 
