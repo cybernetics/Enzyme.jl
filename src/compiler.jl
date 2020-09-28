@@ -7,6 +7,48 @@ import Enzyme_jll
 
 import GPUCompiler: CompilerJob, FunctionSpec, codegen
 using LLVM.Interop
+import LLVM: Target, TargetMachine
+
+function tm_for_jit()
+    opts   = Base.JLOptions()
+    triple = LLVM.triple()
+
+    # cpu_target = unsafe_string(opts.cpu_target)
+    # if cpu_target == "native"
+        cpu = ""
+    # else
+    #   cpu = cpu_target
+    # end
+    features = ""
+
+    # Force ELF on windows
+    if Sys.iswindows()
+        triple *= "-elf"
+    end
+    target = LLVM.Target(triple=triple)
+
+    if Int === Int64
+        codemodel = LLVM.API.LLVMCodeModelLarge
+    else
+        codemodel = LLVM.API.LLVMCodeModelJITDefault
+    end
+
+    if opts.opt_level < 2
+        optlevel = LLVM.API.LLVMCodeGenLevelNone
+    elseif opts.opt_level == 2
+        optlevel = LLVM.API.LLVMCodeGenLevelDefault
+    else
+        optlevel = LLVM.API.LLVMCodeGenLevelAggressive
+    end
+
+    tm = TargetMachine(target, triple, cpu, features,
+                       optlevel,
+                       LLVM.API.LLVMRelocStatic, # Generate simpler code for JIT
+                       codemodel)
+    LLVM.asm_verbosity!(tm, true)
+
+    return tm 
+end
 
 # We have one global JIT and TM
 const jit = Ref{OrcJIT}()
@@ -15,10 +57,7 @@ const tm  = Ref{TargetMachine}()
 function __init__()
     LLVM.clopts("-enzyme_preopt=0")
 
-    triple = Sys.MACHINE
-    target = LLVM.Target(triple=triple)
-    tm[] = TargetMachine(target, triple, "", "", LLVM.API.LLVMCodeGenLevelDefault)
-    LLVM.asm_verbosity!(tm[], true)
+    tm[] = tm_for_jit()
     jit[] = OrcJIT(tm[]) # takes ownership of tm
     atexit() do
         dispose(jit[])
@@ -26,8 +65,6 @@ function __init__()
 end
 
 # Define EnzymeTarget
-import LLVM: Target, TargetMachine
-
 Base.@kwdef struct EnzymeTarget <: AbstractCompilerTarget
 end
 GPUCompiler.llvm_triple(::EnzymeTarget) = Sys.MACHINE
@@ -158,7 +195,5 @@ end
 include("compiler/thunk.jl")
 include("compiler/reflection.jl")
 # include("compiler/validation.jl")
-
-
 
 end
